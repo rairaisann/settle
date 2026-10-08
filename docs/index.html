@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+<head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:; base-uri 'none'; form-action 'none'">
+<meta charset="utf-8">
+<title>Settle</title>
+<style>
+*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{margin:0;width:1280px;height:720px;background:#0f172a;color:#e2e8f0;overflow:hidden}
+.topbar{padding:14px 28px;background:#111827;border-bottom:1px solid #1f2937;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:20px;font-weight:700;color:#38bdf8}
+.tag{font-size:12px;color:#94a3b8}
+.wrap{display:flex;gap:18px;padding:18px 28px}
+.col{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:16px;flex:1}
+h3{margin:0 0 10px;font-size:14px;color:#7dd3fc;text-transform:uppercase;letter-spacing:.5px}
+textarea{width:100%;height:150px;background:#0b1220;color:#cbd5e1;border:1px solid #233047;border-radius:8px;padding:10px;font-size:12px;resize:none}
+button{cursor:pointer;border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;background:#38bdf8;color:#05222f}
+button:hover{background:#0ea5e9}
+button.small{padding:6px 10px;font-size:11px;background:#334155;color:#e2e8f0}
+button.small:hover{background:#475569}
+.hidden{display:none}
+.row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1f2937;font-size:13px}
+.row:last-child{border-bottom:none}
+.card{background:#0b1220;border:1px solid #233047;border-radius:10px;padding:10px;margin-bottom:10px}
+.cardhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.qr{width:48px;height:48px;background:#1e293b;border-radius:6px;display:inline-block;position:relative}
+.qr:before{content:"";position:absolute;inset:8px;background:#38bdf8;border-radius:3px}
+.link{font-size:10px;color:#64748b;word-break:break-all;margin:6px 0}
+.status{font-size:11px;color:#facc15}
+.ledgeritem{font-size:12px;color:#86efac;padding:4px 0;border-bottom:1px dashed #1f2937}
+footer{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:11px;color:#475569}
+.actions{margin-top:12px;display:flex;gap:10px}
+</style>
+</head>
+<body>
+<div class="topbar" data-demo="app">
+  <div class="logo" data-demo="logo">Settle</div>
+  <div class="tag">AIが会話から割り勘・精算を自動生成し、Solana Payで即決済</div>
+</div>
+
+<div class="wrap">
+  <div class="col">
+    <h3>Group Chat Log</h3>
+    <textarea data-demo="chat-box" readonly>Alex: Dinner was $120, I paid
+Mia: I'll cover the cab, $30
+Sam: can we split dinner 4 ways but exclude Mia from the bar tab since she doesn't drink</textarea>
+    <div class="actions">
+      <button data-demo="analyze-btn" onclick="analyze()">Analyze with AI</button>
+    </div>
+
+    <div id="split-panel" class="hidden" data-demo="split-panel" style="margin-top:14px">
+      <h3>Fair Split Result</h3>
+      <div class="row"><span>Sam owes Alex</span><strong>$40 USDC</strong></div>
+      <div class="row"><span>Jay owes Alex</span><strong>$40 USDC</strong></div>
+      <div class="row"><span>Mia owes Alex</span><strong>$10 USDC</strong></div>
+      <div class="actions">
+        <button data-demo="generate-btn" onclick="genLinks()">Generate Solana Pay Links</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <h3>Solana Pay Links</h3>
+    <div id="links-panel" class="hidden" data-demo="links-panel">
+      <div class="card" data-demo="card-sam">
+        <div class="cardhead"><strong>Sam → Alex</strong><span>$40 USDC</span></div>
+        <div class="qr"></div>
+        <div class="link">solana:Alex111...?amount=40&spl-token=USDC</div>
+        <button class="small" data-demo="mark-paid-sam" onclick="markPaid()">Mark as Paid</button>
+        <span class="status" id="status-sam" data-demo="status-sam"></span>
+      </div>
+      <div class="card" data-demo="card-jay">
+        <div class="cardhead"><strong>Jay → Alex</strong><span>$40 USDC</span></div>
+        <div class="qr"></div>
+        <div class="link">solana:Alex111...?amount=40&spl-token=USDC</div>
+        <button class="small" data-demo="remind-jay" onclick="remindJay()">Send Reminder</button>
+        <span class="status" id="status-jay" data-demo="status-jay"></span>
+      </div>
+    </div>
+    <div id="placeholder" style="color:#64748b;font-size:13px">No links yet. Analyze chat first.</div>
+
+    <h3 style="margin-top:16px">On-chain Ledger</h3>
+    <div id="ledger" data-demo="ledger">
+      <div class="ledgeritem">No settlements yet.</div>
+    </div>
+  </div>
+</div>
+
+<footer>Prototype — all data is simulated</footer>
+
+<script>
+function analyze(){
+  document.getElementById('split-panel').classList.remove('hidden');
+}
+function genLinks(){
+  document.getElementById('links-panel').classList.remove('hidden');
+  document.getElementById('placeholder').style.display='none';
+}
+function remindJay(){
+  document.getElementById('status-jay').textContent='🔔 Reminder sent';
+}
+function markPaid(){
+  document.getElementById('status-sam').textContent='✅ Paid';
+  var ledger = document.getElementById('ledger');
+  if(ledger.children[0].textContent.indexOf('No settlements')>-1){ ledger.innerHTML=''; }
+  var item = document.createElement('div');
+  item.className='ledgeritem';
+  item.textContent='Sam → Alex: 40 USDC settled on-chain ✓';
+  ledger.appendChild(item);
+}
+</script>
+</body>
+</html>
